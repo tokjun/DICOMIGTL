@@ -6,6 +6,7 @@
 #include "ui_DICOMIGTLWindow.h"
 #include "igtlMultiThreader.h"
 #include "igtlTCPConnectorServerOIGTL.h"
+#include "igtlTCPConnectorDICOMDirectoryMonitor.h"
 //#include "igtlDICOMStorageObserver.h"
 
 #define DEFAULT_OIGTL_PORT   18944
@@ -25,13 +26,12 @@ public:
 public slots:
   void getPath();
   void about();
-
-  void scannerActivateClicked();
+ 
+  void directoryMonitorActivateClicked();
   void clientActivateClicked();
 
-  void scannerAddressChanged( const QString & text );
-  void imagePortChanged( const QString & text );
-  void controlPortChanged( const QString & text );
+  void inputDirectoryChanged( const QString & text );
+  void processedDirectoryChanged( const QString & text );
   void igtlPortChanged( const QString & text );
   
   void updateStatus();
@@ -45,8 +45,9 @@ private:
   QTimer *timer;
   igtl::MultiThreader::Pointer Threader;
   igtl::TCPConnectorServerOIGTL::Pointer oigtlConnector;
+  igtl::TCPConnectorDICOMDirectoryMonitor::Pointer dicomConnector;
 
-  bool fScannerActive;
+  bool fDirectoryMonitorActive;
   bool fClientActive;
 
   QString scannerAddress;

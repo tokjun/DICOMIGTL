@@ -46,6 +46,7 @@ set(DICOMIGTL_SOURCES
     igtlTCPConnectorServer.cxx
     igtlTCPConnectorClient.cxx
     igtlTCPConnectorServerOIGTL.cxx
+    igtlTCPConnectorDICOMDirectoryMonitor.cxx
 )
 
 set(DICOMIGTL_HEADERS DICOMIGTLApp.h)

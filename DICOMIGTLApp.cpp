@@ -10,6 +10,7 @@
 #include "igtlMultiThreader.h"
 #include "igtlOSUtil.h"
 #include "igtlTCPConnectorServerOIGTL.h"
+#include "igtlTCPConnectorDICOMDirectoryMonitor.h"
 
 const int DICOMIGTLApp::StatusColorTable[][3] = {
   {100, 100, 100},  // STOP
@@ -29,29 +30,27 @@ DICOMIGTLApp::DICOMIGTLApp(QWidget *parent)
 {
   setupUi(this); // this sets up GUI
 
-  fScannerActive = false;
+  fDirectoryMonitorActive = false;
   fClientActive  = false;
 
   // Signals and Slots
   connect(pbQuit, SIGNAL( clicked() ), this, SLOT( quit() ));
   connect(pbAbout, SIGNAL( clicked() ), this, SLOT( about() ));
-  connect(pbScannerActivate, SIGNAL( clicked() ), this, SLOT( scannerActivateClicked() ));
+  connect(pbDirectoryMonitorActivate, SIGNAL( clicked() ),
+          this, SLOT( directoryMonitorActivateClicked() ));
   connect(pbClientActivate, SIGNAL( clicked() ), this, SLOT( clientActivateClicked() ));
 
-  connect(leScannerAddress, SIGNAL( textChanged( const QString &  ) ),
-          this, SLOT( scannerAddressChanged( const QString &  ) ));
-  connect(leControlPort, SIGNAL( textChanged( const QString & ) ),
-          this, SLOT( controlPortChanged( const QString & ) ));
-  connect(leImagePort, SIGNAL( textChanged( const QString &  ) ),
-          this, SLOT( imagePortChanged( const QString & ) ));
+  connect(leInputDirectory, SIGNAL( textChanged( const QString &  ) ),
+          this, SLOT( inputDirectoryChanged( const QString &  ) ));
+  connect(leProcessedDirectory, SIGNAL( textChanged( const QString & ) ),
+          this, SLOT( processedDirectoryChanged( const QString & ) ));
   connect(leOpenIGTLinkPort, SIGNAL( textChanged( const QString & ) ),
           this, SLOT( igtlPortChanged( const QString &  ) ));
 
   // Default values
   QString qs;
-  leScannerAddress->setText("localhost");
-  leControlPort->setText(qs.setNum(DEFAULT_OIGTL_PORT));
-  leImagePort->setText(qs.setNum(DEFAULT_OIGTL_PORT));
+  leInputDirectory->setText("localhost");
+  leProcessedDirectory->setText(qs.setNum(DEFAULT_OIGTL_PORT));
   leOpenIGTLinkPort->setText(qs.setNum(DEFAULT_OIGTL_PORT));
 
   // Time for GUI update (every 200 ms)
@@ -63,15 +62,19 @@ DICOMIGTLApp::DICOMIGTLApp(QWidget *parent)
   oigtlConnector = igtl::TCPConnectorServerOIGTL::New();
   oigtlConnector->SetPort(18944);
   
+  dicomConnector = igtl::TCPConnectorDICOMDirectoryMonitor::New();
+  
   // Connect connectors
   //oigtlConnector->SetOutputConnector(rmpConnector);
-  //spiceConnector->SetOutputConnector(oigtlConnector);
-  
+  dicomConnector->SetOutputConnector(oigtlConnector);
+
   this->Threader = igtl::MultiThreader::New();
-  this->Threader->SpawnThread((igtl::ThreadFunctionType) &igtl::TCPConnectorServerOIGTL::MonitorThreadFunction,
+  this->Threader->SpawnThread((igtl::ThreadFunctionType)
+			      &igtl::TCPConnectorServerOIGTL::MonitorThreadFunction,
                               oigtlConnector);
-
-
+  this->Threader->SpawnThread((igtl::ThreadFunctionType)
+			      &igtl::TCPConnectorDICOMDirectoryMonitor::MonitorThreadFunction,
+                              dicomConnector);
 }
  
  
@@ -98,25 +101,25 @@ void DICOMIGTLApp::about()
                      );
 }
 
-void DICOMIGTLApp::scannerActivateClicked()
+void DICOMIGTLApp::directoryMonitorActivateClicked()
 {
-  if (fScannerActive)
+  if (fDirectoryMonitorActive)
     {
-    pbScannerActivate->setText("Activate");
-    fScannerActive = false;
-    //if (spiceConnector.IsNotNull())
-    //  {
-    //  spiceConnector->Deactivate();
-    //  }
-    //if (rmpConnector.IsNotNull())
-    //  {
-    //  rmpConnector->Deactivate();
-    //  }
+    pbDirectoryMonitorActivate->setText("Activate");
+    fDirectoryMonitorActive = false;
+    if (dicomConnector.IsNotNull())
+      {
+      dicomConnector->Deactivate();
+      }
     }
   else
     {
-    pbScannerActivate->setText("Deactivate");
-    fScannerActive = true;
+    pbDirectoryMonitorActivate->setText("Deactivate");
+    fDirectoryMonitorActive = true;
+    if (dicomConnector.IsNotNull())
+      {
+      dicomConnector->Activate();
+      }
     }
 }
 
@@ -148,17 +151,12 @@ void DICOMIGTLApp::clientActivateClicked()
 }
 
 
-void DICOMIGTLApp::scannerAddressChanged( const QString & text )
+void DICOMIGTLApp::inputDirectoryChanged( const QString & text )
 {
   scannerAddress = text;
 }
 
-void DICOMIGTLApp::imagePortChanged( const QString & text )
-{
-  imagePort = text;
-}
-
-void DICOMIGTLApp::controlPortChanged( const QString & text )
+void DICOMIGTLApp::processedDirectoryChanged( const QString & text )
 {
   controlPort = text;
 }
@@ -196,18 +194,20 @@ void DICOMIGTLApp::changeDataIOTextColor(QLineEdit* le, int status)
 
 void DICOMIGTLApp::updateStatus() 
 {
-  bool editClientFlag = true;
-  bool editScannerFlag = true;
   if (oigtlConnector.IsNotNull())
     {
     leStatusClient->setText(oigtlConnector->GetStatusString());
     changeStatusTextColor(leStatusClient, oigtlConnector->GetStatus());
     leOpenIGTLinkPort->setEnabled(oigtlConnector->GetStatus() == igtl::TCPConnectorBase::STATUS_STOP);
-    editClientFlag &= oigtlConnector->GetStatus() == igtl::TCPConnectorBase::STATUS_STOP;
     }
-  leScannerAddress->setEnabled(editScannerFlag);
-  leControlPort->setEnabled(editScannerFlag);
-  leImagePort->setEnabled(editClientFlag);
+  if (dicomConnector.IsNotNull())
+    {
+    leStatusDirectoryMonitor->setText(dicomConnector->GetStatusString());
+    changeStatusTextColor(leStatusDirectoryMonitor, dicomConnector->GetStatus());
+    bool editFlag = dicomConnector->GetStatus() == igtl::TCPConnectorBase::STATUS_STOP;
+    leInputDirectory->setEnabled(editFlag);
+    leProcessedDirectory->setEnabled(editFlag);
+    }
 }
 
 void DICOMIGTLApp::quit() 
