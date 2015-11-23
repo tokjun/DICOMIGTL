@@ -39,6 +39,8 @@ DICOMIGTLApp::DICOMIGTLApp(QWidget *parent)
   connect(pbDirectoryMonitorActivate, SIGNAL( clicked() ),
           this, SLOT( directoryMonitorActivateClicked() ));
   connect(pbClientActivate, SIGNAL( clicked() ), this, SLOT( clientActivateClicked() ));
+  connect(pbInputDirectory, SIGNAL( clicked() ), this, SLOT( pbInputDirectoryClicked() ));
+  connect(pbProcessedDirectory, SIGNAL( clicked() ), this, SLOT( pbProcessedDirectoryClicked() ));
 
   connect(leInputDirectory, SIGNAL( textChanged( const QString &  ) ),
           this, SLOT( inputDirectoryChanged( const QString &  ) ));
@@ -49,8 +51,8 @@ DICOMIGTLApp::DICOMIGTLApp(QWidget *parent)
 
   // Default values
   QString qs;
-  leInputDirectory->setText("localhost");
-  leProcessedDirectory->setText(qs.setNum(DEFAULT_OIGTL_PORT));
+  leInputDirectory->setText(tr("~/"));
+  leProcessedDirectory->setText(tr("~/"));
   leOpenIGTLinkPort->setText(qs.setNum(DEFAULT_OIGTL_PORT));
 
   // Time for GUI update (every 200 ms)
@@ -80,15 +82,15 @@ DICOMIGTLApp::DICOMIGTLApp(QWidget *parent)
  
 void DICOMIGTLApp::getPath()
 {
-    QString path;
-    
-    //path = QFileDialog::getOpenFileName(
-    //    this,
-    //    "Choose a file to open",
-    //    QString::null,
-    //    QString::null);
-    //
-    //lineEdit->setText( path );
+  // QString path;
+  
+  //path = QFileDialog::getOpenFileName(
+  //    this,
+  //    "Choose a file to open",
+  //    QString::null,
+  //    QString::null);
+  //
+  //lineEdit->setText( path );
 }
  
  
@@ -150,6 +152,26 @@ void DICOMIGTLApp::clientActivateClicked()
     }
 }
 
+
+void DICOMIGTLApp::pbInputDirectoryClicked()
+{
+  QString dir = QFileDialog::getExistingDirectory(
+    this, 
+    tr("Open Input Directory"),
+    "~/",
+    QFileDialog::ShowDirsOnly|QFileDialog::DontResolveSymlinks);
+  leInputDirectory->setText(dir);
+}
+
+void DICOMIGTLApp::pbProcessedDirectoryClicked()
+{
+  QString dir = QFileDialog::getExistingDirectory(
+    this, 
+    tr("Open Processed Directory"),
+    "~/",
+    QFileDialog::ShowDirsOnly|QFileDialog::DontResolveSymlinks);
+  leProcessedDirectory->setText(dir);
+}
 
 void DICOMIGTLApp::inputDirectoryChanged( const QString & text )
 {

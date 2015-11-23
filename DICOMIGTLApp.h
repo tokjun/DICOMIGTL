@@ -29,6 +29,8 @@ public slots:
  
   void directoryMonitorActivateClicked();
   void clientActivateClicked();
+  void pbInputDirectoryClicked();
+  void pbProcessedDirectoryClicked();
 
   void inputDirectoryChanged( const QString & text );
   void processedDirectoryChanged( const QString & text );
